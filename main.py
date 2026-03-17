@@ -1,15 +1,20 @@
+import argparse
 import torch
 import random
 import numpy as np
 from torchvision.transforms import v2
 from hyperparameters import HyperParameters
-from train import DenseNetModel
+from train import DenseNetworkModel
 
 random.seed(42)
 np.random.seed(42)
 torch.manual_seed(42)
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--log", action="store_true", default=False, help="Enable logging")
+    args = parser.parse_args()
+
     if torch.backends.mps.is_available():
         print("mps")
         device = torch.device("mps")
@@ -39,8 +44,10 @@ def main():
                      std=[0.229, 0.224, 0.225])
     ])
 
-    densenet = DenseNetModelNetModel(device, log=True)
+    densenet = DenseNetworkModel(device, log=args.log)
     densenet.train(root_directory, hyperparams, train_transforms, validation_transforms)
 
+# logging off by default
+# for logging run "uv run main.py --log"  
 if __name__ == "__main__":
     main()
