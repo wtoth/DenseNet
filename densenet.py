@@ -3,7 +3,7 @@ from torch import nn
 import torch.nn.functional as F
 
 class DenseNetwork(nn.Module):
-    def __init__(self, channels, classes=10):
+    def __init__(self, channels=3, classes=10):
         super().__init__()
         
         # creates a consistent number of channels to be used in the highway layers
@@ -41,17 +41,14 @@ class DenseNetwork(nn.Module):
         )
         # block 4
         block_4_layers = 16
-        block_4_out_channels = 12
         self.block_4 = nn.Sequential(
             DenseBlock(num_layers=block_4_layers, channels=block_3_out_channels),
-            # transition_layer in_channels will be # of channels the denseblock returns
-            TransitionLayer(in_channels=block_4_layers*block_3_out_channels, out_channels=block_4_out_channels) 
         )
 
         self.output = nn.Sequential(
             nn.AdaptiveAvgPool2d(7),
             nn.Flatten(),
-            nn.Linear(channels, classes)
+            nn.Linear(block_3_out_channels, classes)
         ) 
 
     def forward(self, x):
@@ -79,12 +76,12 @@ class DenseBlock(nn.Module):
         for i in range(num_layers):
             bottleneck_sequence = nn.Sequential(
                 # BN-ReLU-Conv
-                nn.BatchNorm2d(),
+                nn.BatchNorm2d((i+1)*channels),
                 nn.ReLU(),
                 nn.Conv2d(in_channels=(i+1)*channels, out_channels=(i+1)*channels, kernel_size=kernel_size),
             )
             layers.append(bottleneck_sequence)
-        return layers
+        return nn.ModuleList(layers)
 
 class BottleneckedDenseBlock(nn.Module):
     def __init__(self, num_layers, channels, kernel_size=3):
@@ -101,23 +98,23 @@ class BottleneckedDenseBlock(nn.Module):
         for i in range(num_layers):
             bottleneck_sequence = nn.Sequential(
                 # BN-ReLU-Conv
-                nn.BatchNorm2d(),
+                nn.BatchNorm2d(channels),
                 nn.ReLU(),
                 nn.Conv2d(in_channels=(i+1)*channels, out_channels=(i+1)*channels, kernel_size=1),
 
                 # BN-ReLU-Conv
-                nn.BatchNorm2d(),
+                nn.BatchNorm2d((i+1)*channels),
                 nn.ReLU(),
                 nn.Conv2d(in_channels=(i+1)*channels, out_channels=(i+1)*channels, kernel_size=kernel_size),
             )
             layers.append(bottleneck_sequence)
-        return layers
+        return nn.ModuleList(layers)
 
 class TransitionLayer(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.transition_layer = nn.Sequential(
-            nn.BatchNorm2d(),
+            nn.BatchNorm2d(in_channels),
             nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1),
             nn.AvgPool2d(kernel_size=2, stride=2),
         )
