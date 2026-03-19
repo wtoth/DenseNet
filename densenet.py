@@ -13,7 +13,7 @@ class DenseNetwork(nn.Module):
         )
 
         # block 1
-        block_1_layers = 2
+        block_1_layers = 6
         block_1_in_channels = 3
         block_1_out_channels = 12
         self.block_1 = nn.Sequential(
@@ -23,7 +23,7 @@ class DenseNetwork(nn.Module):
         )
 
         # block 2
-        block_2_layers = 3
+        block_2_layers = 6
         block_2_out_channels = 12
         self.block_2 = nn.Sequential(
             DenseBlock(num_layers=block_2_layers, channels=block_1_out_channels),
@@ -32,7 +32,7 @@ class DenseNetwork(nn.Module):
         )
 
         # block 3
-        block_3_layers = 4
+        block_3_layers = 10
         block_3_out_channels = 12
         self.block_3 = nn.Sequential(
             DenseBlock(num_layers=block_3_layers, channels=block_2_out_channels),
@@ -40,7 +40,7 @@ class DenseNetwork(nn.Module):
             TransitionLayer(in_channels=2**block_3_layers*block_2_out_channels, out_channels=block_3_out_channels) 
         )
         # block 4
-        block_4_layers = 3
+        block_4_layers = 10
         self.block_4 = nn.Sequential(
             DenseBlock(num_layers=block_4_layers, channels=block_3_out_channels),
         )
@@ -53,15 +53,10 @@ class DenseNetwork(nn.Module):
 
     def forward(self, x):
         x = self.input(x)
-        print(x.size())
         x = self.block_1(x)
-        print(x.size())
         x = self.block_2(x)
-        print(x.size())
         x = self.block_3(x)
-        print(x.size())
         x = self.block_4(x)
-        print(x.size())
         x = self.output(x)
         return x
 
@@ -90,37 +85,7 @@ class DenseBlock(nn.Module):
             layers.append(sequence)
             channels *= 2 # double number of channels every iteration 
         return nn.ModuleList(layers)
-
-class BottleneckedDenseBlock(nn.Module):
-    def __init__(self, num_layers, channels, kernel_size=3):
-        super().__init__()
-        self.bottlenecked_dense_block = self._build_dense_block(num_layers, channels, kernel_size)
-        
-    def forward(self, x):
-        features = x
-        for bottlenecked_dense_layer in self.bottlenecked_dense_block:
-            x = bottlenecked_dense_layer(features)
-            features = torch.cat([features, x], dim=1)
-        return features
-
-    def _build_bottlenecked_dense_block(self, num_layers, channels, kernel_size=3):
-        layers = []
-        for i in range(num_layers):
-            bottleneck_sequence = nn.Sequential(
-                # BN-ReLU-Conv
-                nn.BatchNorm2d(channels),
-                nn.ReLU(),
-                nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1),
-
-                # BN-ReLU-Conv
-                nn.BatchNorm2d(*channels),
-                nn.ReLU(),
-                nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=kernel_size, padding=1),
-            )
-            layers.append(bottleneck_sequence)
-            channels *= 2 # double number of channels every iteration 
-        return nn.ModuleList(layers)
-
+          
 class TransitionLayer(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
