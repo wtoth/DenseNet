@@ -7,13 +7,17 @@ from torchvision.transforms import v2
 from tqdm import tqdm
 from dataset import Cifar10Dataset
 from densenet import DenseNetwork
+from bottlenecked_densenet import BottleneckedDenseNetwork
 
 import wandb
 
 
 class DenseNetworkModel:
-    def __init__(self, device,log=True):
-        self.model = DenseNetwork().to(device)
+    def __init__(self, device, bottlenecked, log=True):
+        if bottlenecked:
+            self.model = BottleneckedDenseNetwork().to(device)
+        else:
+            self.model = DenseNetwork().to(device)
         self.device = device
         self.log = log
 

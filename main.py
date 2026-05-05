@@ -44,7 +44,8 @@ def main():
                      std=[0.229, 0.224, 0.225])
     ])
 
-    densenet = DenseNetworkModel(device, log=args.log)
+    bottlenecked = False
+    densenet = DenseNetworkModel(device, bottlenecked, log=args.log)
     densenet.train(root_directory, hyperparams, train_transforms, validation_transforms)
 
 # logging off by default
